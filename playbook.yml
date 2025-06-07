@@ -9,18 +9,54 @@
         state: latest
         update_cache: true
 
+    # - name: Ensure index exists with content
+    #   copy:
+    #     src: ./index.html
+    #     dest: /var/www/html/index.nginx-debian.html
+    #     owner: root
+    #     group: root
+    #     mode: '0666'
+    #   notify:
+    #     - Restart NGIX service
+
     - name: Ensure index exists with content
-      copy:
-        src: ./index.html
+      template:
+        src: ./index.html.j2
         dest: /var/www/html/index.nginx-debian.html
         owner: root
         group: root
         mode: '0666'
+      notify:
+        - Restart NGINX service
 
     - name: Ensure nginx service is enabled
       service:
         name: nginx
         state: started
         enabled: true
+
+    - name: Check My Web-Page
+      delegate_to: localhost
+      become: false
+      uri:
+        url: 'http://127.0.0.1:{{ item }}'
+        method: GET
+        validate_certs: false
+        return_content: true
+      register: web_page
+      failed_when: "'Hello from' not in web_page.content"
+      loop:
+        - "8081"
+        - "8082"
+
+  handlers:
+    - name: Restart NGINX service
+      service:
+        name: nginx
+        state: restarted
+
+
+
+
 
 
